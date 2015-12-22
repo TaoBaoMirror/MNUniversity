@@ -1,0 +1,18 @@
+
+		 assume esi:ptr STUDENT
+		 lea esi,STU
+		 mov @HaveFindFlags,0
+		 mov @ICountStudent,0
+		 invoke GetDlgItemText,hWinMain,IDED_NAME,addr @WillFindName,16
+		 .while @TotalStudent>0
+		 		 invoke lstrcpy,addr @Buffer,addr [esi].SNAME	
+		 		 invoke lstrcmp,addr @WillFindName,addr @Buffer
+		 		 .if eax==0
+		 		 		 mov eax,1
+		 		 		 mov @HaveFindFlags,eax
+		 		 		 .break
+		 		 .endif
+		 		 add esi,SizeStructStudent
+		 		 inc @ICountStudent
+		 		 dec @TotalStudent
+		 .endw

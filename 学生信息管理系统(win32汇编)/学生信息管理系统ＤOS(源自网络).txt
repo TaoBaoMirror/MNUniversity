@@ -1,0 +1,246 @@
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+#include "conio.h"
+int jiemian();
+struct student
+{
+	char name[50];
+	char sex[5];
+	int age;
+	char num[50];
+	float score1;
+	float score2;
+	float score3;
+	float sum;
+	float ave;
+}stu[50],del;
+void gn1()
+{
+	int i=0;
+	char num1;
+	for(i=0;i<50;i++)
+	{
+	printf("请输入要添加的学生资料:\n");
+	printf("学号:");
+	scanf("%s",stu[i].num);
+	printf("姓名:");
+	scanf("%s",stu[i].name);
+	printf("性别:");
+	scanf("%s",&stu[i].sex);
+	printf("年龄:");
+	scanf("%d",&stu[i].age);
+	printf("请输入学生的三门成绩:\n");
+	printf("语文:");
+	scanf("%f",&stu[i].score1);
+	printf("数学:");
+	scanf("%f",&stu[i].score2);
+	printf("英语:");
+	scanf("%f",&stu[i].score3);
+	printf("是否继续添加:y/n\n");
+	scanf("%c",&num1);
+	scanf("%c",&num1);
+	if(num1=='N' || num1=='n')
+	{
+		system("cls");
+		jiemian();
+	}
+	}
+}
+void gn2()
+{
+	int i;
+	char num[50];
+	printf("请输入要查找的学生学号:\n");
+	scanf("%s",num);
+	for(i=0;i<50;i++)
+		if(strcmp(stu[i].num,num)==0)
+		{
+			stu[i].sum=stu[i].score1+stu[i].score2+stu[i].score3;
+			stu[i].ave=stu[i].sum/3;
+			printf("%s\t%s\t%s\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f:\n",stu[i].num,stu[i].name,stu[i].sex,stu[i].age,stu[i].score1,stu[i].score2,stu[i].score3,stu[i].sum,stu[i].ave);
+			break;
+		}
+		if(i==50)
+			printf("查找不到!请重新输入!\n");
+			getch();
+			system("cls");
+			jiemian();
+}
+void gn3()
+{
+	char num1,i=0;
+	printf("请输入要修改的学生学号:\n");
+	scanf("%s",stu[i].num);
+	printf("%s\t%s\t%s\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f:\n",stu[i].num,stu[i].name,stu[i].sex,stu[i].age,stu[i].score1,stu[i].score2,stu[i].score3,stu[i].sum,stu[i].ave);
+	printf("姓名:");
+	scanf("%s",stu[i].name);
+	printf("性别:");
+	scanf("%s",stu[i].sex);
+	printf("年龄:");
+	scanf("%d",&stu[i].age);
+	printf("请输入学生的三门成绩:\n");
+	printf("语文:");
+	scanf("%f",&stu[i].score1);
+	printf("数学:");
+	scanf("%f",&stu[i].score2);
+	printf("英语:");
+	scanf("%f",&stu[i].score3);
+	printf("是否继续修改:y/n?\n");
+	scanf("%c",&num1);
+	scanf("%c",&num1);
+	if(num1=='N' || num1=='n')
+		system("cls");
+		jiemian();
+}
+void gn4()
+{
+	int i;
+	char num[50];
+	printf("请输入要删除的学生学号:\n");
+	scanf("%s",num);
+	for(i=0;i<50;i++)
+		if(strcmp(num,stu[i].num)==0)
+		{
+			printf("%s\t%s\t%s\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f:\n",stu[i].num,stu[i].name,stu[i].sex,stu[i].age,stu[i].score1,stu[i].score2,stu[i].score3,stu[i].sum,stu[i].ave);
+			stu[i]=del;
+			printf("信息已删除,按任意键返回..\n");
+			break;
+		}
+		if(i==50)
+			printf("您输入的信息不存在!\n");
+		getch();
+		system("cls");
+		jiemian();
+}
+void gn5()
+{
+	int i=0;
+	stu[i].sum=stu[i].score1+stu[i].score2+stu[i].score3;
+	stu[i].ave=stu[i].sum/3;
+	printf("学号 \t姓名 \t性别 \t年龄 \t语文 \t数学 \t英语 \t总成绩 \t 平均成绩 \n");
+	for(i=0;i<50;i++)
+	{
+		if(stu[i].age==0)
+			break;
+		printf("%s\t%s\t%s\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f:\n",stu[i].num,stu[i].name,stu[i].sex,stu[i].age,stu[i].score1,stu[i].score2,stu[i].score3,stu[i].sum,stu[i].ave);
+	}
+	printf("按任意键返回...");
+	getch();
+	system("cls");
+	jiemian();
+}
+void gn6()
+{
+	FILE *fp;
+	int i;
+	char filename[50];
+	printf("\n");
+	printf("\n");
+	printf("请输入要保存的文件名:");
+	scanf("%s",filename);
+	if((fp=fopen(filename,"wb"))==NULL)
+		printf("文件名为空,不能保存!\n");
+	for(i=0;i<50;i++)
+	{
+		if(fwrite(&stu[i],sizeof(struct student),1,fp)!=1)
+			printf("文件保存失败!\n");
+	}
+	fclose(fp);
+	printf("文件已保存!\n");
+	printf("按任意键返回...\n");
+	getch();
+	system("cls");
+	jiemian();
+}
+void gn7()
+{
+	char filename[50];
+	FILE *fp;
+	int i=0;//打开文件流?char filename[50];
+	printf("请输入文件名：");
+	scanf("%s",filename);//输入要载入的文件名
+	if((fp=fopen(filename,"rb"))==0)//如果当前目录下不存在相对应的文件，输出文件不存在，退出系统.
+	{
+		printf("文件不存在！\n");
+		exit(0);
+	}
+	while(fread(&stu[i],sizeof(struct student),1,fp)!=0)//若存在，读取系统
+	{
+		i++;
+	}
+	fclose(fp);//程序结束后，关闭流.
+	printf("信息已载入！\n");
+	printf("按回车键返回 ");
+	getchar();
+	getchar();
+	system("cls");
+	jiemian();
+}
+void gn8()
+{
+	printf("按任意键退出...");
+	exit(0);
+}
+void xuanze()
+{
+	int num;
+	scanf("%d",&num);
+	switch(num)
+	{
+	case 1:
+		system("cls");
+		gn1();
+		break;
+	case 2:
+		system("cls");
+		gn2();
+		break;
+	case 3:
+		system("cls");
+		gn3();
+		break;
+	case 4:
+		system("cls");
+		gn4();
+		break;
+	case 5:
+		system("cls");
+		gn5();
+		break;
+	case 6:
+		system("cls");
+		gn6();
+		break;
+	case 7:
+		system("cls");
+		gn7();
+		break;
+	case 8:
+		system("cls");
+		gn8();
+		break;
+	default:
+		printf(" ");
+		break;
+	}
+}
+int jiemian()
+{
+	printf("\t\t*****************学生档案管理系统*************\n");
+	printf("\t\t1>添加学生信息");
+	printf("\t\t\t2>查找学生信息\n");
+	printf("\t\t3>修改学生信息");
+	printf("\t\t\t4>删除学生信息\n");
+	printf("\t\t5>显示学生信息");
+	printf("\t\t\t6>保存学生信息\n");
+	printf("\t\t7>载入学生信息");
+	printf("\t\t\t8>退出系统\n");
+	printf("\t\t**********************************************\n");
+	printf("请从1-8中选择您的操作:\n");
+	xuanze();
+}
+void main()
+{
+	jiemian();
+}
