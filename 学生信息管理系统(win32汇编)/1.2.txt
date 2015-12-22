@@ -1,0 +1,385 @@
+.586
+.model flat,stdcall
+option casemap:none
+
+include 		 windows.inc
+include 		 user32.inc
+include 		 kernel32.inc
+include          Comdlg32.inc
+includelib   	 user32.lib
+includelib 	 kernel32.lib
+includelib      Comdlg32.lib;装入通用对话框库
+
+
+BIRTHDAY STRUCT
+		 YEAR DWORD ?
+		 MONTH DWORD ?
+		 DAY DWORD ?
+BIRTHDAY ENDS
+STUDENT STRUCT
+		 ID DWORD ?
+		 SNAME Byte 4 dup(?)
+		 BIRTH BIRTHDAY <>
+		 SEXY DWORD ?
+		 SCORCE DWORD 4 DUP(?)
+STUDENT ENDS
+
+DLG_MAIN EQU 1H
+ICO_MAIN EQU 1300H
+IDST_STATE EQU 1014H
+IDED_STUID EQU 1100H
+IDED_NAME EQU 1101H
+IDED_SEXY EQU 1102H
+IDED_YEAR EQU 1103H
+IDED_MONTH EQU 1104H
+IDED_DAY EQU 1105H
+IDED_ENGLISH EQU 1106H
+IDED_CLANGUAGE EQU 1107H
+IDED_MATH EQU 1108H
+IDED_TOTAL EQU 1109H
+IDED_OUTTEXT EQU 110AH
+IDBU_READ EQU 1200H
+IDBU_SAVE EQU 1201H
+IDBU_NAMEPLUSORDER EQU 1202H
+IDBU_TOTALPLUSORDER EQU 1203H
+IDBU_IDFIND EQU 1204H
+IDBU_NAMEFIND EQU 1205H
+IDBU_AVERAGE EQU 1206H
+IDBU_EVERYNUMBER EQU 1207H
+IDBU_SHOWINFORMATION EQU 1208H
+
+MAX_STUDENTNUMBER EQU 30
+
+.data?
+STU STUDENT MAX_STUDENTNUMBER dup(<>)
+hInstance dd ?
+hWinMain dd ?
+hIcon dd ?
+hFile dd ?
+SizeStudent dd ?
+ICount dd ?
+STRCReadFileName OPENFILENAME <>
+AllFileName db MAX_PATH DUP(?)
+FileBuffer db 8000 dup(?)
+HaveBufferByte dd ?
+Buffer dd 4 dup (?)
+
+testnu dd ?
+test1 dd 20 dup(?)
+
+.data
+SexMan db '男',0
+SexWoman db '女',0
+FileCharacter db '文本文件（*.txt）',0,'*.txt',0,'所有文件（*.*）',0,'*.*',0,0
+NoFileHandle db '打开文件句柄失败！',0
+ReadFlieFalse db '读取文件失败！',0
+ReadFileTrue db '读取文件成功！',0
+CaptionError db '出错啦！',0
+FormatToD db '%u',0
+
+Formatd db '%d',0
+Formats db '%s',0
+A db 'a',0
+B db 'b',0
+Ce db 'c',0
+D db 'd',0
+E db 'e',0
+F db 'f',0
+G db 'g',0
+H db 'h',0
+I db 'i',0
+
+.code
+_SaveToArrayFromUI proc @ICount
+		 local @Buffer [4] : dword
+pushad
+		 lea ebx,STU
+		 mov edx,0
+		 mov eax,@ICount
+		 mul SizeStudent
+		 add ebx,eax
+		 assume ebx :ptr STUDENT
+;invoke wsprintf,addr test1,addr Format,ebx
+;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 invoke GetDlgItemInt,hWinMain,IDED_STUID,NULL,FALSE;获取id号赋值
+		 mov [ebx].ID,eax
+		 ;invoke wsprintf,addr test1,addr Formats,addr [ebx].ID
+		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 invoke GetDlgItemText,hWinMain,IDED_NAME,addr [ebx].SNAME,sizeof @Buffer
+		          ;invoke wsprintf,addr test1,addr Formatd,addr [ebx].SNAME
+		          ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 invoke	SendDlgItemMessage,hWinMain,IDED_SEXY,CB_GETCURSEL,0,0
+		 .if eax==0
+		 		 invoke lstrcpy,addr [ebx].SEXY,addr SexMan
+		 .else
+		 		 invoke lstrcpy,addr [ebx].SEXY,addr SexWoman
+		 .endif
+		 ;invoke MessageBox,NULL,addr [ebx].SEXY,NULL,MB_OK
+		 invoke GetDlgItemInt,hWinMain,IDED_YEAR,NULL,FALSE
+		 mov [ebx].BIRTH.YEAR,eax
+		 ;invoke wsprintf,addr test1,addr Formatd,[ebx].BIRTH.YEAR
+		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 invoke GetDlgItemInt,hWinMain,IDED_MONTH,NULL,FALSE
+		 mov [ebx].BIRTH.MONTH,eax
+		 ;invoke wsprintf,addr test1,addr Formatd,[ebx].BIRTH.MONTH
+		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 invoke GetDlgItemInt,hWinMain,IDED_DAY,NULL,FALSE
+		 mov [ebx].BIRTH.DAY,eax
+		 
+		 invoke GetDlgItemInt,hWinMain,IDED_ENGLISH,NULL,FALSE
+		 mov [ebx].SCORCE,eax
+		 
+		 ;invoke wsprintf,addr test1,addr Formatd,[ebx].SCORCE
+		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 
+		 inc ebx
+		 invoke GetDlgItemInt,hWinMain,IDED_CLANGUAGE,NULL,FALSE
+		 mov [ebx].SCORCE,eax
+		 
+		 ;invoke wsprintf,addr test1,addr Formatd,[ebx].SCORCE
+		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 
+		 inc ebx
+		 invoke GetDlgItemInt,hWinMain,IDED_MATH,NULL,FALSE
+		 mov [ebx].SCORCE,eax
+		 
+		 ;invoke wsprintf,addr test1,addr Formatd,[ebx].SCORCE
+		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 
+		 inc ebx
+		 invoke GetDlgItemInt,hWinMain,IDED_TOTAL,NULL,FALSE
+		 mov [ebx].SCORCE,eax
+		 ;invoke wsprintf,addr test1,addr Formatd,[ebx].SCORCE
+		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 assume ebx:nothing
+popad
+ret
+_SaveToArrayFromUI endp
+
+_AsciiNumberToHex proc
+pushad
+		 ;invoke MessageBox,NULL,addr A,NULL,MB_OK
+		 ;invoke MessageBox,NULL,addr Buffer,NULL,MB_OK
+		 lea ebx,Buffer
+		 mov al,[ebx]
+		 .while TRUE;ebx中ascii码转换成十进制实数
+		 		 .break .if al == 0
+		 		 mov al,[ebx]
+		 		 sub al,48
+		 		 mov [ebx],al
+		 		 inc ebx
+		 .endw
+		 invoke wsprintf,addr test1,addr Formats,addr Buffer
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+popad
+ret
+_AsciiNumberToHex endp
+
+_SaveToArrayFromFileBuffer proc
+		 local @HaveBufferByte:dword;FileBuffer缓冲区的总偏移量
+		 ;local @StrLengths:dword;FileBuffer以经选择的编码长度
+		 ;local @LineLength:dword;FileBuffer缓冲区中的指针偏移量
+		 local @SaveFlags:dword;作为存取到结构体的标记，=1就存到年，=4就存到数学成绩
+		 ;local @Buffer[4]:dword;本地随意缓冲区
+		 ;local @Buffer2[40]:byte
+pushad
+		 invoke RtlZeroMemory,addr STU,sizeof STU
+		 lea ebx,FileBuffer;
+		 lea esi,STU
+		 assume esi:ptr STUDENT
+		 lea edi,Buffer
+		 push HaveBufferByte
+		 pop @HaveBufferByte;
+		 mov @SaveFlags,0
+
+		 		 ;invoke lstrcat,addr @Buffer,addr @Buffer2
+		 		 ;invoke wsprintf,addr @Buffer2,addr Formatd,addr FileBuffer
+		 		 ;invoke MessageBox,NULL,addr FileBuffer,NULL,MB_OK
+
+		 .while @HaveBufferByte
+		 		 invoke RtlZeroMemory,addr Buffer,sizeof Buffer
+		 		 lea edi,Buffer
+		 		 mov ax,[ebx]
+		 		 mov ah,0
+		 ;invoke MessageBox,NULL,addr @Buffer,NULL,MB_OK
+		 		 	;	 invoke MessageBox,NULL,addr A,NULL,MB_OK
+		 		 .if al<= 57 && al >= 48;处理数字
+		 		 		 mov [edi],al
+		 		 		 inc edi
+		 		 		 .while TRUE
+		 		 		 		 inc ebx
+		 		 		 		 mov al,[ebx]
+		 		 		 		 .break .if al==32||al==13||al==10||al==NULL;当数字后有空格换行符或回车或者文件到了最后时跳出
+		 		 		 		 mov [edi],al
+		 		 		 		 inc edi
+		 		 		 .endw
+		 		 		 ;mov eax,Buffer
+		 		 		 invoke _AsciiNumberToHex
+		 		 		 ;invoke lstrcpy,addr [esi].ID,ADDR @Buffer
+		 		 		 ;invoke MessageBox,NULL,addr B,NULL,MB_OK
+		 		 .elseif al>=65 && al<=90 || al>=97 && al <=122;大写和小写字母的处理
+		 		 		 mov [edi],al
+		 		 		 inc edi
+		 		 		 .while TRUE;送到本地缓冲区做进一步处理
+		 		 		 		 inc ebx
+		 		 		 		 mov al,[ebx]
+		 		 		 		 .break .if al==32
+		 		 		 		 mov [edi],al
+		 		 		 		 inc edi
+		 		 		 .endw
+		 		 		 invoke lstrcpy,addr [esi].SNAME,ADDR Buffer
+		 		 .elseif al==13||al==10||al ==32;回车换行空格不处理
+		 		 ;invoke MessageBox,NULL,addr F,NULL,MB_OK
+		 		 		 ;mov @SaveFlags,0
+		 		 .elseif al>=0A0h && al <= 0FEh;处理汉字
+		 		 		 mov [edi],al
+		 		 		 inc edi
+		 		 		 .while TRUE;传送到本地缓冲区做进一步处理
+		 		 		 		 inc ebx
+		 		 		 		 mov al,[ebx]
+		 		 		 		 .break .if al==32
+		 		 		 		 mov [edi],al
+		 		 		 		 inc edi
+		 		 		 .endw
+		 		 		 mov eax,Buffer
+		 		 		 .if eax==3648 || eax== 3714;当字符是男女时分别对应存储到结构体
+		 		 		 invoke lstrcpy,addr [esi].SNAME,ADDR Buffer
+		 		 		 invoke MessageBox,NULL,addr [esi].SNAME,NULL,MB_OK
+		 		 		 .else
+		 		 		 invoke lstrcpy,addr [esi].SEXY,ADDR Buffer
+		 		 		 invoke MessageBox,NULL,addr [esi].SEXY,NULL,MB_OK
+		 		 		 .endif
+		 		 		 ;invoke MessageBox,NULL,addr H,NULL,MB_OK
+		 		 .endif
+		 		 dec @HaveBufferByte
+		 		 inc ebx
+		 		 ;invoke MessageBox,NULL,addr F,NULL,MB_OK
+		 .endw
+popad
+ret
+_SaveToArrayFromFileBuffer endp
+
+_LoadFile proc
+pushad
+		 invoke RtlZeroMemory,addr STRCReadFileName,sizeof STRCReadFileName;初始化READFILILENAME
+		 mov STRCReadFileName.lStructSize,sizeof STRCReadFileName;指定结构体长度
+		 push hWinMain
+		 pop STRCReadFileName.hwndOwner;指定文件所属主窗口
+		 mov STRCReadFileName.lpstrFilter,offset FileCharacter;设置文件特征
+		 mov STRCReadFileName.lpstrFile,offset AllFileName;设置全路径文件缓冲区
+		 mov STRCReadFileName.nMaxFile,sizeof AllFileName;设置文件的全路径缓冲区长度
+		 mov STRCReadFileName.Flags,OFN_FILEMUSTEXIST or OFN_PATHMUSTEXIST;设定用户只能打开已经存在的文件
+		 invoke GetOpenFileName,offset STRCReadFileName;打开文件通用对话框
+		 
+		 ;invoke wsprintf,addr test1,addr Formats,addr AllFileName
+		 ;invoke MessageBox,NULL,addr AllFileName,NULL,MB_OK
+		 
+popad
+ret
+_LoadFile endp
+
+_DealFile proc
+pushad
+		 invoke CreateFile,addr AllFileName,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL
+		 .if eax==INVALID_HANDLE_VALUE;判断返回的句柄看有没有获取正确打开文件指针
+		 		 invoke MessageBox,hWinMain,addr NoFileHandle,addr CaptionError,MB_OK OR MB_ICONWARNING
+		 .else;成功打开
+		 		 mov hFile,eax
+		 		 ;invoke wsprintf,addr test1,addr Formatd,eax
+		 		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 		 invoke ReadFile,hFile,addr FileBuffer,sizeof FileBuffer,addr HaveBufferByte,NULL;读取文件到内存缓冲区
+		 		 .if eax==0
+		 		 		 invoke MessageBox,hWinMain,addr ReadFlieFalse,addr CaptionError,MB_OK OR MB_ICONWARNING;读取时出现错误
+		 		 ;.elseif eax !=0 && HaveBufferByte==0
+		 		 ;		 invoke MessageBox,hWinMain,addr ReadFileTrue,addr CaptionError,MB_OK OR MB_ICONWARNING
+		 		 .else;读取正确的处理
+		 		 		 ;invoke wsprintf,addr test1,addr Formatd,HaveBufferByte
+		 		 		 ;invoke MessageBox,NULL,addr FileBuffer,NULL,MB_OK
+		 		 		 invoke _SaveToArrayFromFileBuffer;把缓冲区中的档案保存到数组
+		 		 .endif
+		 .endif
+popad
+ret
+_DealFile endp
+
+_ProcDlgMain proc uses ebx esi edi hWnd,wMsg,wParam,lParam
+		 mov eax,hWnd
+		 mov hWinMain,eax
+		 mov eax,wMsg
+		 .if eax==WM_CLOSE
+		 		 invoke EndDialog,hWnd,NULL
+		 .elseif eax==WM_INITDIALOG
+		 		 mov SizeStudent,sizeof STUDENT
+		 		 invoke LoadIcon,hInstance,ICO_MAIN
+		 		 mov hIcon,eax
+		 		 invoke SendMessage,hWnd,WM_SETICON,ICON_BIG,eax
+		 		 invoke SendDlgItemMessage,hWnd,IDED_SEXY,CB_ADDSTRING,NULL,ADDR SexMan;初始化组合框
+		 		 invoke SendDlgItemMessage,hWnd,IDED_SEXY,CB_ADDSTRING,NULL,ADDR SexWoman
+		 		 invoke SendDlgItemMessage,hWnd,IDED_STUID,EM_LIMITTEXT,8,0;以下分别限定字符串长度
+		 		 invoke SendDlgItemMessage,hWnd,IDED_NAME,EM_LIMITTEXT,8,0
+		 		 invoke SendDlgItemMessage,hWnd,IDED_YEAR,EM_LIMITTEXT,4,0
+		 		 invoke SendDlgItemMessage,hWnd,IDED_MONTH,EM_LIMITTEXT,2,0
+		 		 invoke SendDlgItemMessage,hWnd,IDED_DAY,EM_LIMITTEXT,2,0
+		 		 invoke SendDlgItemMessage,hWnd,IDED_ENGLISH,EM_LIMITTEXT,3,0
+		 		 invoke SendDlgItemMessage,hWnd,IDED_CLANGUAGE,EM_LIMITTEXT,3,0
+		 		 invoke SendDlgItemMessage,hWnd,IDED_MATH,EM_LIMITTEXT,3,0
+		 		 invoke SendDlgItemMessage,hWnd,IDED_TOTAL,EM_LIMITTEXT,3,0
+		 .elseif eax==WM_COMMAND
+		 		 mov eax,wParam
+		 		 .if ax<=IDED_OUTTEXT && ax>=IDED_STUID
+		 		 		 mov eax,TRUE
+		 		 		 ret
+		 		 .elseif ax==IDOK
+		 		 		 ;invoke MessageBox,hWinMain,addr SexWoman,NULL,MB_OK
+		 		 		 invoke _SaveToArrayFromUI,ICount
+		 		 		 inc ICount;指向下一个结构体
+		 		 ;		 invoke _SaveToArray,ICount
+		 		 ;		 inc ICount
+		 		 .elseif ax==IDCANCEL
+		 		 		 ;invoke _SaveToArray,ICount
+		 		 		 ;inc ICount
+		 		 		 invoke EndDialog,hWnd,NULL;按下ESC将会退出
+		 		 .elseif ax==IDBU_READ
+		 		 		 invoke _LoadFile;装载文件
+		 		 		 invoke _DealFile
+		 		 		 ;invoke _SaveToArrayFromFileBuffer
+		 		 ;invoke MessageBox,NULL,addr A,NULL,MB_OK
+		         ; invoke GetDlgItemInt,hWnd,IDED_STUID,NULL,FALSE
+		         ; invoke wsprintf,addr test1,addr Format,eax
+		         ; invoke MessageBox,hWnd,addr test1,NULL,MB_OK
+		          ;mov testnu,eax
+		           ;invoke MessageBox,NULL,addr I,NULL,MB_OK
+		 		 .elseif ax==IDBU_SAVE
+		 		
+		 		 ;invoke MessageBox,NULL,addr A,NULL,MB_OK
+		 		 .elseif ax==IDBU_NAMEPLUSORDER
+		 		 ;invoke MessageBox,NULL,addr B,NULL,MB_OK
+		 		 .elseif ax==IDBU_TOTALPLUSORDER
+		 		 ;invoke MessageBox,NULL,addr Ce,NULL,MB_OK
+		 		 .elseif ax==IDBU_IDFIND
+		 		 ;invoke MessageBox,NULL,addr D,NULL,MB_OK
+		 		 .elseif ax==IDBU_NAMEFIND
+		 		 ;invoke MessageBox,NULL,addr E,NULL,MB_OK
+		 		 .elseif ax==IDBU_AVERAGE
+		 		 ;invoke MessageBox,NULL,addr F,NULL,MB_OK
+		 		 .elseif ax==IDBU_EVERYNUMBER
+		 		 ;invoke MessageBox,NULL,addr G,NULL,MB_OK
+		 		 .elseif ax==IDBU_SHOWINFORMATION
+		 		 ;invoke MessageBox,NULL,addr H,NULL,MB_OK
+		 		 .endif
+		 .else
+		 		 mov eax,FALSE
+		 		 ret
+		 .endif
+		 
+		 mov eax,TRUE
+		 ret
+_ProcDlgMain endp
+
+
+START:
+		 invoke GetModuleHandle,NULL
+		 mov hInstance,eax
+		 invoke DialogBoxParam,hInstance,DLG_MAIN,NULL,addr _ProcDlgMain,NULL
+		 invoke ExitProcess,NULL
+END START

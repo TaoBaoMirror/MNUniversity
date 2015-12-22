@@ -1,0 +1,596 @@
+.586
+.model flat,stdcall
+option casemap:none
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;需要的头文件
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+include 		 windows.inc
+include 		 user32.inc
+include 		 kernel32.inc
+include          Comdlg32.inc
+include msvcrt.inc
+includelib   	 user32.lib
+includelib 	 kernel32.lib
+includelib      Comdlg32.lib;装入通用对话框库
+includelib msvcrt.lib;混合编程调用C语言atio所需的库文件
+
+atoi proto C:dword,:vararg;声明一下atoi是一个C语言函数
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;学生结构体的定义
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+BIRTHDAY STRUCT
+		 YEAR dword 2 dup(?)
+		 MONTH DWORD ?
+		 DAY DWORD ?
+BIRTHDAY ENDS
+SCORCE STRUCT
+		 ENGLISH DWORD ?
+		 CLANGUAGE DWORD ?
+		 MATH DWORD ?
+		 TOTAL DWORD ?
+SCORCE ENDS
+STUDENT STRUCT
+		 ID DWORD 4 dup(?)
+		 SNAME DWORD 4 dup(?)
+		 SEXY DWORD 1 dup(?)
+		 BIRTH BIRTHDAY <>
+		 SCOR SCORCE <>
+STUDENT ENDS
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;资源的定义
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+DLG_MAIN EQU 1H
+ICO_MAIN EQU 1300H
+IDST_STATE EQU 1014H
+IDED_STUID EQU 1100H
+IDED_NAME EQU 1101H
+IDED_SEXY EQU 1102H
+IDED_YEAR EQU 1103H
+IDED_MONTH EQU 1104H
+IDED_DAY EQU 1105H
+IDED_ENGLISH EQU 1106H
+IDED_CLANGUAGE EQU 1107H
+IDED_MATH EQU 1108H
+IDED_TOTAL EQU 1109H
+IDED_OUTTEXT EQU 110AH
+IDBU_READ EQU 1200H
+IDBU_SAVE EQU 1201H
+IDBU_NAMEPLUSORDER EQU 1202H
+IDBU_TOTALPLUSORDER EQU 1203H
+IDBU_IDFIND EQU 1204H
+IDBU_NAMEFIND EQU 1205H
+IDBU_AVERAGE EQU 1206H
+IDBU_EVERYNUMBER EQU 1207H
+IDBU_SHOWINFORMATION EQU 1208H
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;必要变量的定义
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+MAX_STUDENTNUMBER EQU 30;定义最大学生人数
+.data?
+STU STUDENT MAX_STUDENTNUMBER dup(<>);STUDENT结构体数组
+hInstance dd ?;模块实例句柄
+hWinMain dd ?;主窗口句柄
+hIcon dd ?;图标句柄
+hFile dd ?;打开的文件句柄
+hNewFile dd ?;新建文件句柄
+SizeStructStudent dd ?;STUDENT结构体的大小
+TotalStudentNumber dd ?;学生总人数统计
+STRUCTReadFileName OPENFILENAME <>;
+TotalPathFileName db MAX_PATH DUP(?);全路径文件名字
+FileContainBuffer db 8000 dup(?);从硬盘打开的文件内容缓冲到的地方
+HaveReadByte dd ?;从硬盘打开的文件内容给FileContainBuffer的字节数
+ToTextBuffer db 8000 dup(?);转换好的文件准备放到硬盘的缓冲区
+NewFileName db MAX_PATH DUP (?)
+NewFileHaveWriteByte dd ?
+
+test1 db 18 dup(?)
+.data
+SexMan db '男',0
+SexWoman db '女',0
+FileCharacter db '文本文件（*.txt）',0,'*.txt',0,'所有文件（*.*）',0,'*.*',0,0
+NoFileHandle db '打开文件句柄失败！',0
+ReadToFlieContainBufferFalse db '读取文件到内存缓冲区失败！',0
+ReadToFileContainBufferTrue db '读取文件内存缓冲区成功！',0
+CaptionSucceed db '恭喜哟：',0
+CaptionError db '出错啦！',0
+SucceedRead db '文本文件已成功存储到结构体数组！',0
+NewFileNameSuffix db 'NEW.txt',0
+CanNotFindStudent db '没有找到该学生！',0
+HaveFindStudent db '已经找到该学生学生！',0
+FormatToD db '%u',0
+
+
+formatd db '%d',0
+formats db '%s',0
+.code
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;加载界面时完成一系列初始化工作
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+_InitialWork proc
+pushad
+		 		 mov TotalStudentNumber,0
+		 		 mov SizeStructStudent,sizeof STUDENT
+		 		 invoke LoadIcon,hInstance,ICO_MAIN
+		 		 mov hIcon,eax
+		 		 invoke RtlZeroMemory,addr STU,sizeof STU
+		 		 invoke SendMessage,hWinMain,WM_SETICON,ICON_BIG,eax
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_SEXY,CB_ADDSTRING,NULL,ADDR SexMan;初始化组合框
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_SEXY,CB_ADDSTRING,NULL,ADDR SexWoman
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_STUID,EM_LIMITTEXT,8,0;以下分别限定字符串长度
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_NAME,EM_LIMITTEXT,8,0
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_YEAR,EM_LIMITTEXT,4,0
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_MONTH,EM_LIMITTEXT,2,0
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_DAY,EM_LIMITTEXT,2,0
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_ENGLISH,EM_LIMITTEXT,3,0
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_CLANGUAGE,EM_LIMITTEXT,3,0
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_MATH,EM_LIMITTEXT,3,0
+		 		 invoke SendDlgItemMessage,hWinMain,IDED_TOTAL,EM_LIMITTEXT,3,0
+popad
+		 		 ret
+_InitialWork endp
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;把用户输入的UI界面的数据保存到结构体数组
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+_SaveToStructFromUI proc @IStructCount
+pushad
+
+		 assume ebx :ptr STUDENT
+		 lea ebx,STU
+		 mov edx,0
+		 mov eax,@IStructCount
+		 mul SizeStructStudent
+		 add ebx,eax
+		 
+		 invoke GetDlgItemText,hWinMain,IDED_STUID,addr [ebx].ID,16;获取id号赋值
+		 invoke GetDlgItemText,hWinMain,IDED_NAME,addr [ebx].SNAME,16
+		 invoke	SendDlgItemMessage,hWinMain,IDED_SEXY,CB_GETCURSEL,0,0
+		 .if eax==0
+		 		 invoke lstrcpy,addr [ebx].SEXY,addr SexMan
+		 .else
+		 		 invoke lstrcpy,addr [ebx].SEXY,addr SexWoman
+		 .endif
+		 invoke GetDlgItemText,hWinMain,IDED_YEAR,addr [ebx].BIRTH.YEAR,8
+		 invoke GetDlgItemText,hWinMain,IDED_MONTH,addr [ebx].BIRTH.MONTH,4
+		 invoke GetDlgItemText,hWinMain,IDED_DAY,ADDR [ebx].BIRTH.DAY,4
+		 invoke GetDlgItemText,hWinMain,IDED_ENGLISH,ADDR [ebx].SCOR.ENGLISH,4
+		 invoke GetDlgItemText,hWinMain,IDED_CLANGUAGE,ADDR [ebx].SCOR.CLANGUAGE,4
+		 invoke GetDlgItemText,hWinMain,IDED_MATH,ADDR [ebx].SCOR.MATH,4
+		 invoke GetDlgItemText,hWinMain,IDED_TOTAL,ADDR [ebx].SCOR.TOTAL,4
+		 assume ebx:nothing
+		 inc TotalStudentNumber
+		 
+popad
+ret
+_SaveToStructFromUI endp;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;把所有结构体中的数据保存到硬盘TEXT文件
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+_SaveToFileFromStruct proc
+		 local @TotalStudentNumber:dword;学生总人数
+		 local @SpaceBuffer[2]:byte;空格ASCII字符
+		 local @EnterBuffer1[1]:dword;换行ASCII字符
+		 local @EnterBuffer2[1]:dword;回车ASCII字符
+pushad
+		 invoke RtlZeroMemory,addr ToTextBuffer,sizeof ToTextBuffer
+		 push TotalStudentNumber
+		 pop @TotalStudentNumber
+		 mov @SpaceBuffer,' '
+		 mov eax,0dh
+		 mov @EnterBuffer1,eax
+		 mov eax,0ah
+		 mov @EnterBuffer2,eax
+		 assume ebx:ptr STUDENT
+		 lea ebx,STU
+		 .while @TotalStudentNumber >0
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].ID
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].SNAME
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].SEXY
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].BIRTH.YEAR
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].BIRTH.MONTH
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].BIRTH.DAY
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].SCOR.ENGLISH
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].SCOR.CLANGUAGE
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].SCOR.MATH
+		 		 invoke lstrcat,addr ToTextBuffer,addr @SpaceBuffer
+		 		 invoke lstrcat,addr ToTextBuffer,addr [ebx].SCOR.TOTAL
+		 		 invoke lstrcat,addr ToTextBuffer,addr @EnterBuffer1
+		 		 invoke lstrcat,addr ToTextBuffer,addr @EnterBuffer2
+		 		 add ebx,SizeStructStudent;指向下一组结构体
+		 		 dec @TotalStudentNumber
+		 .endw
+		 
+		 
+		 assume ebx:nothing
+		 invoke lstrcpy,addr NewFileName,addr TotalPathFileName
+		 invoke lstrcat,addr NewFileName,addr NewFileNameSuffix
+		 invoke CreateFile,addr NewFileName,GENERIC_WRITE,FILE_SHARE_READ,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0
+		 .if eax== INVALID_HANDLE_VALUE
+		 		 invoke MessageBox,hWinMain,addr NoFileHandle,addr CaptionError,MB_OK OR MB_ICONWARNING
+		 .else
+		 		 mov hNewFile,eax
+		 		 invoke WriteFile,hNewFile,addr ToTextBuffer,length ToTextBuffer,addr NewFileHaveWriteByte,NULL
+		 .endif
+		 invoke CloseHandle,hNewFile
+popad
+ret
+_SaveToFileFromStruct endp
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;把缓冲区中的数据保存到结构体数组
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+__SaveToStructFromFileContainBuffer proc @IStructCount
+		 local @HaveReadByte:dword;FileContainBuffer缓冲区的总偏移量
+		 local @Flags:dword;作为存取到结构体的标记，=1就存到年，=4就存到数学成绩
+		 local @Buffer[4]:dword
+pushad
+		 ;invoke RtlZeroMemory,addr STU,sizeof STU
+		 assume esi:ptr STUDENT
+		 lea esi,STU
+		 mov edx,0
+		 mov eax,@IStructCount
+		 mul SizeStructStudent
+		 add esi,eax
+		 lea ebx,FileContainBuffer
+		 push HaveReadByte
+		 pop @HaveReadByte;
+		 mov @Flags,0
+		 .while @HaveReadByte
+		 		 invoke RtlZeroMemory,addr @Buffer,sizeof @Buffer
+		 		 lea edi,@Buffer
+		 		 mov ax,[ebx]
+		 		 mov ah,0
+		 		 .if al==NULL;读取到文件最后总人数加1
+		 		 		 inc TotalStudentNumber
+		 		 .endif
+		 		 .break .if al==NULL
+		 		 .if al<= 57 && al >= 48;处理数字
+		 		 		 mov [edi],al
+		 		 		 inc edi
+		 		 		 .while TRUE
+		 		 		 		 inc ebx
+		 		 		 		 dec @HaveReadByte
+		 		 		 		 mov al,[ebx]
+		 		 		 		 .break .if al==32||al==13||al==10||al==NULL;当数字后有空格换行符或回车或者文件到了最后时跳出
+		 		 		 		 mov [edi],al
+		 		 		 		 inc edi
+		 		 		 .endw
+		 		 		 .if @Flags==0
+		 		 		 		 invoke lstrcpy,addr [esi].ID,addr @Buffer
+		 		 		 .elseif @Flags==1
+		 		 		 		 invoke lstrcpy,addr [esi].BIRTH.YEAR,addr @Buffer
+		 		 		 .elseif @Flags==2
+		 		 		 		 invoke lstrcpy,addr [esi].BIRTH.MONTH,addr @Buffer
+		 		 		 .elseif @Flags==3
+		 		 		 		 invoke lstrcpy,addr [esi].BIRTH.DAY,addr @Buffer
+		 		 		 .elseif @Flags==4
+		 		 		 		 invoke lstrcpy,addr [esi].SCOR.ENGLISH,addr @Buffer
+		 		 		 .elseif @Flags==5
+		 		 		 		 invoke lstrcpy,addr [esi].SCOR.CLANGUAGE,addr @Buffer
+		 		 		 .elseif @Flags==6
+		 		 		 		 invoke lstrcpy,addr [esi].SCOR.MATH,addr @Buffer
+		 		 		 .elseif @Flags==7
+		 		 		 		 invoke lstrcpy,addr [esi].SCOR.TOTAL,addr @Buffer
+		 		 		 .endif
+		 		 		 inc @Flags
+		 		 .elseif al>=65 && al<=90 || al>=97 && al <=122;大写和小写字母的处理
+		 		 		 mov [edi],al
+		 		 		 inc edi
+		 		 		 .while TRUE;送到本地缓冲区做进一步处理
+		 		 		 		 inc ebx
+		 		 		 		 dec @HaveReadByte
+		 		 		 		 mov al,[ebx]
+		 		 		 		 .break .if al==32
+		 		 		 		 mov [edi],al
+		 		 		 		 inc edi
+		 		 		 .endw
+		 		 		 invoke lstrcpy,addr [esi].SNAME,addr @Buffer
+		 		 .elseif al==13||al==10;||al ==32;回车换行空格不处理
+		 		 		 add esi,SizeStructStudent;本行处理结束，跳到下一行处理
+		 		 		 mov @Flags,0
+		 		 		 inc TotalStudentNumber;学生总人数加1
+		 		 .elseif al>=0A0h && al <= 0FEh;处理汉字
+		 		 		 mov [edi],al
+		 		 		 inc edi
+		 		 		 .while TRUE;传送到本地缓冲区做进一步处理
+		 		 		 		 inc ebx
+		 		 		 		 dec @HaveReadByte
+		 		 		 		 mov al,[ebx]
+		 		 		 		 .break .if al==32
+		 		 		 		 mov [edi],al
+		 		 		 		 inc edi
+		 		 		 .endw
+		 		 		 mov eax,@Buffer [2];判断@Buffer的第3字节判断男女
+		 		 		 .if eax==0;当字符是男女时分别对应存储到结构体
+		 		 		 		 invoke lstrcpy,addr [esi].SEXY,addr @Buffer
+		 		 		 .else
+		 		 		 		 invoke lstrcpy,addr [esi].SNAME,addr @Buffer
+		 		 		 .endif
+		 		 .endif
+		 		 dec @HaveReadByte
+		 		 inc ebx;处理下一个缓冲区字节
+		 .endw
+		 assume esi:nothing
+popad
+ret
+__SaveToStructFromFileContainBuffer endp
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;从硬盘加载TEXT文件对应加载到缓冲区并且调用子程序把缓冲区数据保存到结构体数组
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+_LoadFile proc
+pushad
+		 invoke RtlZeroMemory,addr STRUCTReadFileName,sizeof STRUCTReadFileName;初始化READFILILENAME
+		 mov STRUCTReadFileName.lStructSize,sizeof STRUCTReadFileName;指定结构体长度
+		 push hWinMain
+		 pop STRUCTReadFileName.hWndOwner;指定文件所属主窗口
+		 mov STRUCTReadFileName.lpstrFilter,offset FileCharacter;设置文件特征
+		 mov STRUCTReadFileName.lpstrFile,offset TotalPathFileName;设置全路径文件缓冲区
+		 mov STRUCTReadFileName.nMaxFile,sizeof TotalPathFileName;设置文件的全路径缓冲区长度
+		 mov STRUCTReadFileName.Flags,OFN_FILEMUSTEXIST or OFN_PATHMUSTEXIST;设定用户只能打开已经存在的文件
+		 invoke GetOpenFileName,offset STRUCTReadFileName;打开文件通用对话框
+		 invoke CreateFile,addr TotalPathFileName,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL
+		 .if eax==INVALID_HANDLE_VALUE;判断返回的句柄看有没有获取正确打开文件指针
+		 		 invoke MessageBox,hWinMain,addr NoFileHandle,addr CaptionError,MB_OK OR MB_ICONWARNING
+		 .else;成功打开
+		 		 mov hFile,eax
+		 		 invoke ReadFile,hFile,addr FileContainBuffer,sizeof FileContainBuffer,addr HaveReadByte,NULL;读取文件到内存缓冲区
+		 		 .if eax==0
+		 		 		 invoke MessageBox,hWinMain,addr ReadToFlieContainBufferFalse,addr CaptionError,MB_OK OR MB_ICONWARNING;读取时出现错误
+		 		 .else;读取正确的处理
+		 		 		 invoke __SaveToStructFromFileContainBuffer,TotalStudentNumber;把缓冲区中的档案保存到数组
+		 		 .endif
+		 		 invoke CloseHandle,hFile
+		 .endif
+popad
+ret
+_LoadFile endp
+
+
+
+
+
+
+
+
+
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+;按学号查找学生信息，eax是返回值，0没找到，非零表示查找的第几个学生，从界面学号出读取要查找的学生的学号
+;》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》》
+_IDFind proc
+		 local @WillFindID[4]:dword
+		 local @Buffer[4]:dword
+		 local @ICountStudent:dword
+		 local @TotalStudent:dword
+		 local @HaveFindFlags:dword
+pushad
+		 push TotalStudentNumber
+		 pop @TotalStudent
+		 assume esi:ptr STUDENT
+		 lea esi,STU
+		 mov @HaveFindFlags,0
+		 mov @ICountStudent,0
+		 invoke GetDlgItemText,hWinMain,IDED_STUID,addr @WillFindID,16
+		 .while @TotalStudent>0
+		 		 invoke lstrcpy,addr @Buffer,addr [esi].ID
+		 		 invoke lstrcmp,addr @WillFindID,addr @Buffer
+		 		 .if eax==0
+		 		 		 mov eax,1
+		 		 		 mov @HaveFindFlags,eax
+		 		 		 .break
+		 		 .endif
+		 		 add esi,SizeStructStudent
+		 inc @ICountStudent
+		 dec @TotalStudent
+		 .endw
+		 mov eax,TotalStudentNumber
+		 .if @HaveFindFlags==1 && @ICountStudent<eax
+		 		 invoke wsprintf,addr test1,addr formatd,@ICountStudent
+		 		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 .else
+		 		 invoke MessageBox,NULL,addr CanNotFindStudent,NULL,MB_OK
+		 .endif		 
+popad
+ret
+_IDFind endp
+
+_NameFind proc
+	
+		 local @WillFindName[4]:dword
+		 local @Buffer[4]:dword
+		 local @ICountStudent:dword
+		 local @TotalStudent:dword
+		 local @HaveFindFlags:dword
+pushad
+		 push TotalStudentNumber
+		 pop @TotalStudent
+		 assume esi:ptr STUDENT
+		 lea esi,STU
+		 mov @HaveFindFlags,0
+		 mov @ICountStudent,0
+		 invoke GetDlgItemText,hWinMain,IDED_NAME,addr @WillFindName,16
+		 .while @TotalStudent>0
+		 		 invoke lstrcpy,addr @Buffer,addr [esi].SNAME
+		 		 invoke lstrcmp,addr @WillFindName,addr @Buffer
+		 		 .if eax==0
+		 		 		 mov eax,1
+		 		 		 mov @HaveFindFlags,eax
+		 		 		 .break
+		 		 .endif
+		 		 add esi,SizeStructStudent
+		 		 inc @ICountStudent
+		 		 dec @TotalStudent
+		 .endw
+		 mov eax,@TotalStudent
+		 .if @HaveFindFlags==1 && @ICountStudent <eax
+		 		 invoke wsprintf,addr test1,addr formatd,@ICountStudent
+		 		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 .else
+		 		 invoke MessageBox,NULL,addr CanNotFindStudent,NULL,MB_OK
+		 .endif
+popad
+ret
+_NameFind endp
+
+_CalculateAverage proc
+		 local @TotalStudentNumber:dword
+		 local @TotalEnglishScorce:dword
+		 local @TotalClanguageScorce:dword
+		 local @TotalMathScorce:dword
+		 local @AverageEnglishScorce:dword
+		 local @AverageClanguageScorce:dword
+		 local @AverageMathScorce:dword
+pushad
+		 
+		 mov @TotalEnglishScorce,0
+		 mov @TotalClanguageScorce,0
+		 mov @TotalMathScorce,0
+		 mov @AverageEnglishScorce,0
+		 mov @AverageClanguageScorce,0
+		 mov @AverageMathScorce,0
+		 push TotalStudentNumber
+		 pop @TotalStudentNumber
+		 dec @TotalStudentNumber
+		 .repeat;计算三门课的总分数
+		 		 lea esi,STU;计算偏移量
+		 		 assume esi:ptr STUDENT
+		 		 mov eax,@TotalStudentNumber
+		 		 mov edx,0
+		 		 mul SizeStructStudent
+		 		 add esi,eax
+		 		 
+		 		 invoke atoi,addr [esi].SCOR.ENGLISH
+		 		 add @TotalEnglishScorce,eax		 		 
+		 		 invoke atoi,addr [esi].SCOR.CLANGUAGE
+		 		 add @TotalClanguageScorce,eax
+		 		 invoke atoi,addr [esi].SCOR.MATH
+		 		 add @TotalMathScorce,eax		 		 
+		 		 dec @TotalStudentNumber		 		 
+		 .until @TotalStudentNumber ==-1
+		 mov edx,0
+		 mov eax,@TotalEnglishScorce
+		 div TotalStudentNumber		 
+		 mov @AverageEnglishScorce,eax
+		 mov edx,0
+		 mov eax,@TotalClanguageScorce
+		 div TotalStudentNumber
+		 mov @AverageClanguageScorce,eax
+		 mov edx,0
+		 mov eax,@TotalMathScorce
+		 div TotalStudentNumber
+		 mov @AverageMathScorce,eax
+		 
+		 invoke wsprintf,addr test1,addr formatd,@AverageEnglishScorce
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 invoke wsprintf,addr test1,addr formatd,@AverageClanguageScorce
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK		 invoke wsprintf,addr test1,addr formatd,@AverageMathScorce
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+popad
+ret
+_CalculateAverage endp
+
+_StasticSexy proc
+		 local @TotalStudentNumber:dword
+		 local @ICountStudent:dword
+		 local @SexyManNumber:dword
+		 local @SexyWomanNumber:dword
+pushad
+		 push TotalStudentNumber
+		 pop @TotalStudentNumber
+		 push TotalStudentNumber
+		 pop @ICountStudent
+		 dec @ICountStudent
+		 mov @SexyManNumber,0
+		 mov @SexyWomanNumber,0
+		 lea esi,STU
+		 assume esi:ptr STUDENT
+		 .repeat
+		 		 invoke lstrcmp,addr [esi].SEXY,addr SexMan
+		 		 .if eax==0
+		 		 		 inc @SexyManNumber
+		 		 .endif
+		 		 invoke lstrcmp,addr [esi].SEXY,addr SexWoman
+		 		 .if eax==0
+		 		 		 inc @SexyWomanNumber
+		 		 .endif
+		 		 add esi,SizeStructStudent
+		 		 dec @ICountStudent
+		 .until @ICountStudent == -1
+		 
+		 invoke wsprintf,addr test1,addr formatd,@SexyManNumber
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 
+		 invoke wsprintf,addr test1,addr formatd,@SexyWomanNumber
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 
+		 invoke wsprintf,addr test1,addr formatd,@TotalStudentNumber
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 
+popad
+ret
+_StasticSexy endp
+
+
+_ProcDlgMain proc uses ebx esi edi hWnd,wMsg,wParam,lParam
+		 mov eax,hWnd
+		 mov hWinMain,eax
+		 mov eax,wMsg
+		 .if eax==WM_CLOSE
+		 		 invoke EndDialog,hWnd,NULL
+		 .elseif eax==WM_INITDIALOG
+		 		 invoke _InitialWork
+		 .elseif eax==WM_COMMAND
+		 		 mov eax,wParam
+		 		 .if ax<=IDED_OUTTEXT && ax>=IDED_STUID
+		 		 		 mov eax,TRUE
+		 		 		 ret
+		 		 .elseif ax==IDOK
+		 		 		 invoke _SaveToStructFromUI,TotalStudentNumber
+		 		 		 ;inc TotalStudentNumber;学生总人数加1
+		 		 .elseif ax==IDCANCEL
+		 		 		 invoke EndDialog,hWnd,NULL;按下ESC将会退出
+		 		 .elseif ax==IDBU_READ
+		 		 		 invoke _LoadFile;装载文件
+		 		 .elseif ax==IDBU_SAVE
+		 				 invoke _SaveToFileFromStruct
+		 				 invoke MessageBox,NULL,addr ToTextBuffer,NULL,MB_OK
+		 		 ;invoke MessageBox,NULL,addr A,NULL,MB_OK
+		 		 .elseif ax==IDBU_NAMEPLUSORDER
+		 		 ;invoke MessageBox,NULL,addr B,NULL,MB_OK
+		 		 .elseif ax==IDBU_TOTALPLUSORDER
+		 		 ;invoke MessageBox,NULL,addr Ce,NULL,MB_OK
+		 		 .elseif ax==IDBU_IDFIND
+		 		 		 invoke _IDFind
+		 		 ;invoke MessageBox,NULL,addr D,NULL,MB_OK
+		 		 .elseif ax==IDBU_NAMEFIND
+		 		 		 invoke _NameFind
+		 		 ;invoke MessageBox,NULL,addr E,NULL,MB_OK
+		 		 .elseif ax==IDBU_AVERAGE
+		 		 		 invoke _CalculateAverage
+		 		 ;invoke MessageBox,NULL,addr F,NULL,MB_OK
+		 		 .elseif ax==IDBU_EVERYNUMBER
+		 		 		 invoke _StasticSexy
+		 		 ;invoke MessageBox,NULL,addr G,NULL,MB_OK
+		 		 .elseif ax==IDBU_SHOWINFORMATION
+		 		 		 invoke _SaveToFileFromStruct
+		 		 		 invoke MessageBox,NULL,addr ToTextBuffer,NULL,MB_OK
+		 		 ;invoke MessageBox,NULL,addr H,NULL,MB_OK
+		 		 .endif
+		 .else
+		 		 mov eax,FALSE
+		 		 ret
+		 .endif
+		 
+		 mov eax,TRUE
+		 ret
+_ProcDlgMain endp
+START:
+		 invoke GetModuleHandle,NULL
+		 mov hInstance,eax
+		 invoke DialogBoxParam,hInstance,DLG_MAIN,NULL,addr _ProcDlgMain,NULL
+		 invoke ExitProcess,NULL
+END START

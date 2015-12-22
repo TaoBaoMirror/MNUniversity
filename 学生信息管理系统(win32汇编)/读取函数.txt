@@ -1,0 +1,32 @@
+
+_SaveToArray proc @ICount
+		 local @Buffer [4] : dword
+pushad
+
+		 lea ebx,STU
+		 mov edx,0
+		 mov eax,@ICount
+		 mul SizeStudent
+		 add ebx,eax
+		 pushad
+
+		           popad
+		 invoke GetDlgItemInt,hWinMain,IDED_ID,NULL,FALSE;获取id号赋值
+		          invoke wsprintf,test1,addr Format,eax
+		           invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 mov (STUDENT ptr [edi]).ID,eax
+		 
+		 invoke wsprintf,test1,addr Format,eax
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 
+		 invoke GetDlgItemText,hWinMain,IDED_NAME,ADDR (STUDENT ptr [edi]).SNAME,sizeof STUDENT.SNAME;获取名字文本并赋值
+		 invoke SendDlgItemMessage,hWinMain,IDED_SEXY,CB_GETCURSEL,0,0;获取性别
+		 .if eax==0
+		 		 invoke wsprintf,(STUDENT ptr [edi]).SEXY,addr Format,SexMan;赋值男性别
+		 .else
+		 		 invoke wsprintf,(STUDENT ptr [edi]).SEXY,addr Format,SexWoman;赋值女性别
+		 .endif
+		 invoke MessageBox,NULL,addr SexWoman,NULL,MB_OK
+popad
+RET
+_SaveToArray endp

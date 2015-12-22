@@ -1,0 +1,56 @@
+
+_AsciiNumberToHex proc
+		 local @Buffer[10]:byte
+		 local @Result:dword
+pushad
+		 invoke RtlZeroMemory,addr @Buffer,sizeof @Buffer
+		 mov @Result,0
+		 lea ebx,Buffer		 
+		 
+		 mov al,[ebx]
+		 sub al,48
+		 .while TRUE;ebx中ascii码转换成十进制实数
+		 		 .break .if al<0 || al>9
+		 		 mov al,[ebx]
+		 		 sub al,48
+		 		 mov [ebx],al
+		 		 inc ebx
+		 .endw
+		 
+		 lea esi,@Buffer
+		 mov ebx,16
+		 mov eax,Buffer
+		 ;invoke wsprintf,addr test1,addr FormatToD,eax
+		 ;invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 mov edx,0
+		 .while TRUE;循环处理每个字节把每个字节转换成十六进制并存储在本地缓冲区
+		 		 div ebx
+		 		 .break .if eax==0
+		 		 mov [esi],edx
+		 		 mov edx,0
+		 		 inc esi
+		 .endw
+		 
+		 lea edx,@Buffer
+		 dec esi
+		 mov ah,[esi]
+		 dec esi
+		 mov bl,[esi]
+		 shl bl,4
+		 mov al,bl
+		 .while TRUE;把本地缓冲区每个字节的数合成成一个总的32位数据
+		 		 dec esi
+		 		 add al,[esi]
+		 		 .break .if esi == edx;当本地缓冲区@Buffer的第一个字节时退出合成
+		 		 shl eax,4
+		 .endw
+		 ;mov eax,0
+		 ;add al,@Buffer
+		 mov @Result,eax
+		 invoke wsprintf,addr test1,addr Formats,addr @Result
+		 invoke MessageBox,NULL,addr test1,NULL,MB_OK
+		 invoke MessageBox,NULL,addr A,NULL,MB_OK
+popad
+		 mov eax,@Result
+ret
+_AsciiNumberToHex endp
